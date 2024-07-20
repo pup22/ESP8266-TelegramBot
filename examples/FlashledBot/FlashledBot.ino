@@ -11,25 +11,26 @@
 
 #include <ESP8266WiFi.h>
 #include <WiFiClientSecure.h>
-#include <ESP8266TelegramBOT.h>
+#include "ESP8266TelegramBOT.h"
+#include "../secret.h"
 
+#define LED 2
 
 // Initialize Wifi connection to the router
-char ssid[] = "xxxxxxxxxxxxxxxxxxxxxx";              // your network SSID (name)
-char pass[] = "yyyyyyyy";                              // your network key
+char ssid[] = SSID;              // your network SSID (name)
+char pass[] = PASS;                              // your network key
 
 
 
-// Initialize Telegram BOT
-
-#define BOTtoken "134745667:AAETzUWRQdb9xbMX_s-q_50U6ffgXcW3ldg"  //token of FlashledBOT
-#define BOTname "FlashledBot"
-#define BOTusername "FlashledBot_bot"
+// Initialize Telegram BOT (in secret.h file)
+// #define BOTtoken "134745667:AAETzUWRQdb9xbMX_s-q_50U6ffgXcW3ldg"  //token of FlashledBOT
+// #define BOTname "FlashledBot"
+// #define BOTusername "FlashledBot_bot"
 
 TelegramBOT bot(BOTtoken, BOTname, BOTusername);
 
-int Bot_mtbs = 1000; //mean time between scan messages
-long Bot_lasttime;   //last time messages' scan has been done
+int Bot_mtbs = 2500; //mean time between scan messages
+unsigned long Bot_lasttime;   //last time messages' scan has been done
 bool Start = false;
 
 
@@ -39,16 +40,15 @@ bool Start = false;
  ********************************************/
 void Bot_ExecMessages() {
   for (int i = 1; i < bot.message[0][0].toInt() + 1; i++)      {
-    bot.message[i][5]=bot.message[i][5].substring(1,bot.message[i][5].length());
-    if (bot.message[i][5] == "\/ledon") {
-      digitalWrite(13, HIGH);   // turn the LED on (HIGH is the voltage level)
+    if (bot.message[i][5] == "/ledon") {
+      digitalWrite(LED, LOW);   // turn the LED on (HIGH is the voltage level)
       bot.sendMessage(bot.message[i][4], "Led is ON", "");
     }
-    if (bot.message[i][5] == "\/ledoff") {
-      digitalWrite(13, LOW);    // turn the LED off (LOW is the voltage level)
+    if (bot.message[i][5] == "/ledoff") {
+      digitalWrite(LED, HIGH);    // turn the LED off (LOW is the voltage level)
       bot.sendMessage(bot.message[i][4], "Led is OFF", "");
     }
-    if (bot.message[i][5] == "\/start") {
+    if (bot.message[i][5] == "/start") {
       String wellcome = "Wellcome from FlashLedBot, your personal Bot on ESP8266 board";
       String wellcome1 = "/ledon : to switch the Led ON";
       String wellcome2 = "/ledoff : to switch the Led OFF";
@@ -61,25 +61,32 @@ void Bot_ExecMessages() {
   bot.message[0][0] = "";   // All messages have been replied - reset new messages
 }
 
-
 void setup() {
   Serial.begin(115200);
-  delay(3000);
+  pinMode(LED, OUTPUT); // initialize digital pin as an output.
 
   // attempt to connect to Wifi network:
-  Serial.print("Connecting Wifi: ");
-  Serial.println(ssid);
-  while (WiFi.begin(ssid, pass) != WL_CONNECTED) {
-    Serial.print(".");
-    delay(500);
+  {
+    Serial.print("\nConnecting Wifi: ");
+    Serial.println(ssid);
+
+    WiFi.mode(WIFI_STA);
+    WiFi.hostname("ESP_Test"); // имя для ESP
+    WiFi.begin(ssid, pass);
+    while (WiFi.status() != WL_CONNECTED)
+    {
+      digitalWrite(LED, !digitalRead(LED));
+      Serial.print(".");
+      delay(100);
+    }
+    digitalWrite(LED, LOW);
+
+    Serial.println("\nWiFi connected");
+    Serial.println("IP address: ");
+    IPAddress ip = WiFi.localIP();
+    Serial.println(ip);
   }
-  Serial.println("");
-  Serial.println("WiFi connected");
-  Serial.println("IP address: ");
-  IPAddress ip = WiFi.localIP();
-  Serial.println(ip);
   bot.begin();      // launch Bot functionalities
-  pinMode(2, OUTPUT); // initialize digital pin 2 as an output.
 }
 
 
